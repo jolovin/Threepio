@@ -12,7 +12,7 @@ namespace Threepio.Client.ViewModels
         private ServerManagement serverManager;
         private AcademyGameConsole gameConsole;
 
-        private const string WindowTitleDefault = "Threepio v1.0.0.0"; 
+        private const string WindowTitleDefault = "Threepio v 1.0.0.0"; 
         private string _windowTitle = WindowTitleDefault;
 
         public List<string> AvailablePlayers { get; set; }
