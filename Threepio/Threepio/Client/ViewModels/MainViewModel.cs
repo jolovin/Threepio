@@ -2,6 +2,7 @@
 using Caliburn.Micro;
 using GameServerInfo;
 using Threepio.Server;
+using Threepio.GameInterface;
 
 namespace Threepio.Client.ViewModels
 {
@@ -9,7 +10,9 @@ namespace Threepio.Client.ViewModels
     {
         private GameServer gameServer;
         private ServerManagement serverManager;
-        private const string WindowTitleDefault = "Threepio"; 
+        private AcademyGameConsole gameConsole;
+
+        private const string WindowTitleDefault = "Threepio v1.0.0.0"; 
         private string _windowTitle = WindowTitleDefault;
 
         public List<string> AvailablePlayers { get; set; }
@@ -19,6 +22,7 @@ namespace Threepio.Client.ViewModels
         /// </summary>
         public MainViewModel()
         {
+            gameConsole = new AcademyGameConsole();
             GetAvailablePlayers();
         }
 

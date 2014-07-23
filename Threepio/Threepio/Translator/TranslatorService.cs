@@ -11,11 +11,12 @@ namespace Threepio.Translator
     {
         private TranslatorContainer translatorContainer;
 
-        public void InitializeTranslator()
+        public TranslatorService()
         {
-            Console.OutputEncoding = Encoding.UTF8;
-
+            var serviceRoot =
             translatorContainer = new TranslatorContainer(new Uri(ConfigurationManager.ConnectionStrings["TranslatorUri"].ToString()));
+
+            //var accountKey = "9rJefc02QuZ9UNGf61+Q4F1oGq00J3cgql24oaS8vZU";
             translatorContainer.Credentials = new NetworkCredential(ConfigurationManager.AppSettings["TranslatorAccountKey"], ConfigurationManager.AppSettings["TranslatorAccountKey"]);
         }
 

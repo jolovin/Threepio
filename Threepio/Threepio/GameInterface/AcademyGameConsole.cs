@@ -63,7 +63,6 @@ namespace Threepio.GameInterface
         public AcademyGameConsole()
         {
             isFirstBatchOfMessages = true;
-
             FindJediAcademyConsoleHandle();
         }
 
