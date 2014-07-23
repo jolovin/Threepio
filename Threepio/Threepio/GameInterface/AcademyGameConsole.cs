@@ -12,7 +12,6 @@ namespace Threepio.GameInterface
 {
     public class AcademyGameConsole
     {
-        //private ServerManagement _severManagement;
         private TranslatorService translatorService;
         private List<string> Players { get; set; }
         private string TargetedPlayer { get; set; }
@@ -156,16 +155,6 @@ namespace Threepio.GameInterface
                 isFirstBatchOfMessages = false;
                 return;
             }
-           
-
-            var index = chatEntry.IndexOf(user);
-            var userRemoval = (index < 0) ? chatEntry :  chatEntry.Remove(index, (user + translateInstruction).Length + 1).Replace("\r\n", "");
-
-            var regex = new Regex("#(.*)#");
-            var v = regex.Match(userRemoval);
-            var partialName = userRemoval = v.Groups[1].ToString();
-
-            
 
             if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
             {
@@ -184,10 +173,8 @@ namespace Threepio.GameInterface
 
             if (chatEntry.StartsWith(TargetedPlayer + ":"))
             {
-                var index2 = chatEntry.IndexOf(TargetedPlayer + ":");
-                var targetRemoval = (index2 < 0) ? chatEntry : chatEntry.Remove(index2, (TargetedPlayer + ":" + translateInstruction).Length + 1).Replace("\r\n", "");
-                //var messageToTranslate = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":" + translateInstruction).Length + 1)
-                //.Replace("\r\n", "").Replace(string.Format("#{0}#", userRemoval), "");
+                var index = chatEntry.IndexOf(TargetedPlayer + ":");
+                var targetRemoval = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":").Length + 1).Replace("\r\n", "");
 
                 TranslateChatEntry(TargetedPlayer, targetRemoval);
                 return;
@@ -195,10 +182,14 @@ namespace Threepio.GameInterface
 
             if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
             {
-                var messageToTranslate = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":").Length + 1)
-                .Replace("\r\n", "");
+                var index = chatEntry.IndexOf(user);
+                var userRemoval = (index < 0) ? chatEntry : chatEntry.Remove(index, (user + translateInstruction).Length + 1).Replace("\r\n", "");
 
-                TargetedPlayer = GetPlayer(partialName);
+                var regex = new Regex("#(.*)#");
+                var match = regex.Match(userRemoval);
+
+                TargetedPlayer = GetPlayer(userRemoval = match.Groups[1].ToString());
+
                 var task = new TaskFactory();
                 task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Now translating ^1{1}", "Threepio", TargetedPlayer))))
                    .ContinueWith(x =>
