@@ -50,22 +50,6 @@ namespace Threepio.Server
         }
 
         /// <summary>
-        /// Returns a playerName based on the given partial name.
-        /// </summary>
-        /// <param name="partialPlayerName">The player's partial name.</param>
-        /// <returns>The player name.</returns>
-        public string GetPlayer(string partialPlayerName)
-        {
-            foreach (var player in _players)
-            {
-                if (player.Contains(partialPlayerName))
-                    return player;
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// Indicates whether the server is online or not.
         /// </summary>
         /// <returns>True or false</returns>

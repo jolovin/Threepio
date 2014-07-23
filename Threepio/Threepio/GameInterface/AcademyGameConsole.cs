@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Timers;
 using System.Threading.Tasks;
 using Threepio.Translator;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace Threepio.GameInterface
 {
@@ -12,6 +14,8 @@ namespace Threepio.GameInterface
     {
         //private ServerManagement _severManagement;
         private TranslatorService translatorService;
+        private List<string> Players { get; set; }
+        private string TargetedPlayer { get; set; }
 
         //GetWindow WINAPI constants
         private const int GW_HWNDFIRST = 0;
@@ -60,8 +64,11 @@ namespace Threepio.GameInterface
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
-        public AcademyGameConsole()
+        public AcademyGameConsole(List<string> players)
         {
+            Players = players;
+            TargetedPlayer = "";
+
             isFirstBatchOfMessages = true;
             FindJediAcademyConsoleHandle();
         }
@@ -140,31 +147,106 @@ namespace Threepio.GameInterface
         /// <param name="command">The chat being analyzed.</param>
         private void CheckMessageForCommand(string chatEntry)
         {
-            var translateInstruction = "_3";
+            //TODO: Refactor the string handling.
+            var translateInstruction = ">";
+            var stopTranslatingInstruction = ">>";
             
             if (isFirstBatchOfMessages)
             {
                 isFirstBatchOfMessages = false;
                 return;
             }
+           
 
-            var task = new TaskFactory();
+            var index = chatEntry.IndexOf(user);
+            var userRemoval = (index < 0) ? chatEntry :  chatEntry.Remove(index, (user + translateInstruction).Length + 1).Replace("\r\n", "");
 
-            if (chatEntry.Contains(string.Format("{0} {1}", user, translateInstruction)))
-            {                
-                var index = chatEntry.IndexOf(user);
-                var messageToTranslate = (index < 0) ? chatEntry : chatEntry.Remove(index, (user + translateInstruction).Length + 1).Replace("\r\n", "");
+            var regex = new Regex("#(.*)#");
+            var v = regex.Match(userRemoval);
+            var partialName = userRemoval = v.Groups[1].ToString();
 
-                task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>{1}", user.Replace(":", ""), translatorService.Translate(messageToTranslate)))))
-                    .ContinueWith(x =>
-                    {
-                        if (x.Status == TaskStatus.RanToCompletion)
-                        {
-                            SendChatMessage(new StringBuilder(" "));
-                        }
-                    });
+            
+
+            if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
+            {
+                TargetedPlayer = "";
+                var task = new TaskFactory();
+                task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Ended Translation...", "Threepio"))))
+                   .ContinueWith(x =>
+                   {
+                       if (x.Status == TaskStatus.RanToCompletion)
+                       {
+                           SendChatMessage(new StringBuilder(" "));
+                       }
+                   });
+                return;
+            }
+
+            if (chatEntry.StartsWith(TargetedPlayer + ":"))
+            {
+                var index2 = chatEntry.IndexOf(TargetedPlayer + ":");
+                var targetRemoval = (index2 < 0) ? chatEntry : chatEntry.Remove(index2, (TargetedPlayer + ":" + translateInstruction).Length + 1).Replace("\r\n", "");
+                //var messageToTranslate = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":" + translateInstruction).Length + 1)
+                //.Replace("\r\n", "").Replace(string.Format("#{0}#", userRemoval), "");
+
+                TranslateChatEntry(TargetedPlayer, targetRemoval);
+                return;
+            }            
+
+            if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
+            {
+                var messageToTranslate = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":").Length + 1)
+                .Replace("\r\n", "");
+
+                TargetedPlayer = GetPlayer(partialName);
+                var task = new TaskFactory();
+                task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Now translating ^1{1}", "Threepio", TargetedPlayer))))
+                   .ContinueWith(x =>
+                   {
+                       if (x.Status == TaskStatus.RanToCompletion)
+                       {
+                           SendChatMessage(new StringBuilder(" "));
+                       }
+                   });
             }
         }
+
+        private void TranslateChatEntry(string targetedPlayer, string messageToTranslate)
+        {
+            var task = new TaskFactory();
+               task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1> {1}", targetedPlayer, translatorService.Translate(messageToTranslate)))))
+                   .ContinueWith(x =>
+                   {
+                       if (x.Status == TaskStatus.RanToCompletion)
+                       {
+                           SendChatMessage(new StringBuilder(" "));
+                       }
+                   });
+        }
+
+        /// <summary>
+        /// Returns a playerName based on the given partial name.
+        /// </summary>
+        /// <param name="partialPlayerName">The player's partial name.</param>
+        /// <returns>The player name.</returns>
+        public string GetPlayer(string partialName)
+        {
+            foreach (var player in Players)
+            {
+                if(player.ToLower().Contains(partialName.ToLower()))
+                    return player;
+            }
+            return partialName;
+        }
+
+        /// <summary>
+        /// Updates the list of players
+        /// </summary>
+        /// <param name="players">The list of players</param>
+        public void UpdatePlayerList(List<string> players)
+        {
+            Players = players;
+        }       
 
         /// <summary>
         /// Send the chat message to the game console.

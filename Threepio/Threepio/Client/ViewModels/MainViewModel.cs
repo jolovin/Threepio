@@ -22,8 +22,8 @@ namespace Threepio.Client.ViewModels
         /// </summary>
         public MainViewModel()
         {
-            gameConsole = new AcademyGameConsole();
             GetAvailablePlayers();
+            gameConsole = new AcademyGameConsole(AvailablePlayers);
         }
 
         /// <summary>
