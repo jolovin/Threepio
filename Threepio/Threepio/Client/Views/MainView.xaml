@@ -1,0 +1,30 @@
+﻿<Window x:Class="Threepio.Client.Views.MainView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding WindowTitle}" Height="300" Width="250"
+        ResizeMode="NoResize">
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.RowSpan="3" Header="PlayerList" Margin="10, 20, 20, 0">
+            <ListBox Margin="5" Width="150" Height="150" ItemsSource="{Binding AvailablePlayers, Mode=TwoWay, NotifyOnSourceUpdated=True}" />
+        </GroupBox>
+
+        <Button x:Name="GetAvailablePlayers" Grid.Row="4" Grid.Column="0" Margin="10, 10, 20, 0">Update Player List</Button>
+
+    </Grid>
+</Window>
