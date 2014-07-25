@@ -107,7 +107,7 @@ namespace Threepio.GameInterface
         {
             Timer timer = new Timer();
             timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            timer.Interval = 400;
+            timer.Interval = 100;
             timer.Enabled = true;
         }
 
@@ -164,7 +164,7 @@ namespace Threepio.GameInterface
                 return;
             }
 
-            if (chatEntry.StartsWith(TargetedPlayer + ":"))
+            if (chatEntry.StartsWith(string.Format("{0}:", TargetedPlayer)))
             {
                 var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
 
@@ -212,7 +212,7 @@ namespace Threepio.GameInterface
         {
             foreach (var player in Players)
             {
-                if(player.ToLower().Contains(partialName.ToLower()))
+                if(player.ToLower().Replace("-[KR]-", "").Contains(partialName.ToLower()))
                     return player;
             }
             return "";
