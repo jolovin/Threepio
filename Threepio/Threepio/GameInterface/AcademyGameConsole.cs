@@ -38,7 +38,6 @@ namespace Threepio.GameInterface
 
         private string user = "-[KR]-" + ConfigurationManager.AppSettings["PlayerName"] + ":";
 
-
         private const string windowName = "Jedi Knight Academy MP Console"; // Process' window name. Used to grab console (edit) handle
         private const string editClassName = "Edit"; // The handle we want to find.
 
@@ -71,9 +70,7 @@ namespace Threepio.GameInterface
             isFirstBatchOfMessages = true;
             FindJediAcademyConsoleHandle();
         }
-        public void Test()
-        {
-        }
+
         private void FindJediAcademyConsoleHandle()
         {
             IntPtr consoleWindow = FindWindowByCaption(IntPtr.Zero, windowName);
@@ -110,7 +107,7 @@ namespace Threepio.GameInterface
         {
             Timer timer = new Timer();
             timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            timer.Interval = 350;
+            timer.Interval = 300;
             timer.Enabled = true;
         }
 
@@ -159,17 +156,11 @@ namespace Threepio.GameInterface
             }
 
             if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
-            {
+            {                
+                MessageToConsole("Threepio", string.Format("No longer translating ^1{0}^7...", TargetedPlayer));
+
                 TargetedPlayer = "";
-                var task = new TaskFactory();
-                task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Ended Translation...", "Threepio"))))
-                   .ContinueWith(x =>
-                   {
-                       if (x.Status == TaskStatus.RanToCompletion)
-                       {
-                           SendChatMessage(new StringBuilder(" "));
-                       }
-                   });
+
                 return;
             }
 
@@ -177,57 +168,32 @@ namespace Threepio.GameInterface
             {
                 var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
 
-                TranslateChatEntry(TargetedPlayer, targetRemoval);
+                MessageToConsole(TargetedPlayer, targetRemoval, true);
                 return;
             }            
 
             if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
             {
-                //var userRemoval = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "");
-                //var regex = new Regex("#(.*)#");
-                //var match = regex.Match(userRemoval);
-
-                //TargetedPlayer = GetPlayer(userRemoval = match.Groups[1].ToString());
-
-
-
-                TargetedPlayer = GetPlayer(chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim());
+                var partialName = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim();
+                TargetedPlayer = GetPlayer(partialName);
 
                 if (string.IsNullOrEmpty(TargetedPlayer))
                 {
-                    CannotFindPlayer();
+                    MessageToConsole("Threepio", string.Format("Unable to find player with partial name: ^1{0}. Please consider refreshing player list", partialName));
                     return;
-                } 
+                }
 
-                var task = new TaskFactory();
-                task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Now translating ^1{1}", "Threepio", TargetedPlayer))))
-                   .ContinueWith(x =>
-                   {
-                       if (x.Status == TaskStatus.RanToCompletion)
-                       {
-                           SendChatMessage(new StringBuilder(" "));
-                       }
-                   });
+                MessageToConsole("Threepio", string.Format("Now translating ^1{0}^7...", TargetedPlayer));
             }
         }
 
-        private void TranslateChatEntry(string targetedPlayer, string messageToTranslate)
+        private void MessageToConsole(string echoMessageReporter, string messageToDisplay, bool isTranslate = false)
         {
-            var task = new TaskFactory();
-               task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1> {1}", targetedPlayer, translatorService.Translate(messageToTranslate)))))
-                   .ContinueWith(x =>
-                   {
-                       if (x.Status == TaskStatus.RanToCompletion)
-                       {
-                           SendChatMessage(new StringBuilder(" "));
-                       }
-                   });
-        }
 
-        private void CannotFindPlayer()
-        {
+            messageToDisplay = isTranslate ? translatorService.Translate(messageToDisplay) : messageToDisplay;
+
             var task = new TaskFactory();
-            task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: ^1{1}", "Threepio", "Cannot locate player"))))
+            task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1> {1}", echoMessageReporter, messageToDisplay))))
                 .ContinueWith(x =>
                 {
                     if (x.Status == TaskStatus.RanToCompletion)
@@ -251,15 +217,6 @@ namespace Threepio.GameInterface
             }
             return "";
         }
-
-        /// <summary>
-        /// Updates the list of players
-        /// </summary>
-        /// <param name="players">The list of players</param>
-        public void UpdatePlayerList(List<string> players)
-        {
-            Players = players;
-        }       
 
         /// <summary>
         /// Send the chat message to the game console.
