@@ -107,7 +107,7 @@ namespace Threepio.GameInterface
         {
             Timer timer = new Timer();
             timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            timer.Interval = 300;
+            timer.Interval = 400;
             timer.Enabled = true;
         }
 
