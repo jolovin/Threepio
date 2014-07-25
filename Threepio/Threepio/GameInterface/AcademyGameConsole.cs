@@ -71,7 +71,9 @@ namespace Threepio.GameInterface
             isFirstBatchOfMessages = true;
             FindJediAcademyConsoleHandle();
         }
-
+        public void Test()
+        {
+        }
         private void FindJediAcademyConsoleHandle()
         {
             IntPtr consoleWindow = FindWindowByCaption(IntPtr.Zero, windowName);
@@ -108,7 +110,7 @@ namespace Threepio.GameInterface
         {
             Timer timer = new Timer();
             timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            timer.Interval = 1000;
+            timer.Interval = 350;
             timer.Enabled = true;
         }
 
@@ -173,8 +175,7 @@ namespace Threepio.GameInterface
 
             if (chatEntry.StartsWith(TargetedPlayer + ":"))
             {
-                var index = chatEntry.IndexOf(TargetedPlayer + ":");
-                var targetRemoval = (index < 0) ? chatEntry : chatEntry.Remove(index, (TargetedPlayer + ":").Length + 1).Replace("\r\n", "");
+                var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
 
                 TranslateChatEntry(TargetedPlayer, targetRemoval);
                 return;
@@ -182,13 +183,21 @@ namespace Threepio.GameInterface
 
             if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
             {
-                var index = chatEntry.IndexOf(user);
-                var userRemoval = (index < 0) ? chatEntry : chatEntry.Remove(index, (user + translateInstruction).Length + 1).Replace("\r\n", "");
+                //var userRemoval = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "");
+                //var regex = new Regex("#(.*)#");
+                //var match = regex.Match(userRemoval);
 
-                var regex = new Regex("#(.*)#");
-                var match = regex.Match(userRemoval);
+                //TargetedPlayer = GetPlayer(userRemoval = match.Groups[1].ToString());
 
-                TargetedPlayer = GetPlayer(userRemoval = match.Groups[1].ToString());
+
+
+                TargetedPlayer = GetPlayer(chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim());
+
+                if (string.IsNullOrEmpty(TargetedPlayer))
+                {
+                    CannotFindPlayer();
+                    return;
+                } 
 
                 var task = new TaskFactory();
                 task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: Now translating ^1{1}", "Threepio", TargetedPlayer))))
@@ -215,6 +224,19 @@ namespace Threepio.GameInterface
                    });
         }
 
+        private void CannotFindPlayer()
+        {
+            var task = new TaskFactory();
+            task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1>: ^1{1}", "Threepio", "Cannot locate player"))))
+                .ContinueWith(x =>
+                {
+                    if (x.Status == TaskStatus.RanToCompletion)
+                    {
+                        SendChatMessage(new StringBuilder(" "));
+                    }
+                });
+        }
+
         /// <summary>
         /// Returns a playerName based on the given partial name.
         /// </summary>
@@ -227,7 +249,7 @@ namespace Threepio.GameInterface
                 if(player.ToLower().Contains(partialName.ToLower()))
                     return player;
             }
-            return partialName;
+            return "";
         }
 
         /// <summary>

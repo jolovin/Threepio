@@ -12,7 +12,7 @@ namespace Threepio.Client.ViewModels
         private ServerManagement serverManager;
         private AcademyGameConsole gameConsole;
 
-        private const string WindowTitleDefault = "Threepio v 1.0.0.0"; 
+        private const string WindowTitleDefault = "Threepio v 1.0.0.1"; 
         private string _windowTitle = WindowTitleDefault;
 
         public List<string> AvailablePlayers { get; set; }
@@ -23,7 +23,6 @@ namespace Threepio.Client.ViewModels
         public MainViewModel()
         {
             GetAvailablePlayers();
-            gameConsole = new AcademyGameConsole(AvailablePlayers);
         }
 
         /// <summary>
@@ -34,6 +33,7 @@ namespace Threepio.Client.ViewModels
             serverManager = new ServerManagement(gameServer);
             AvailablePlayers = serverManager.GetPlayers();
             NotifyOfPropertyChange(() => AvailablePlayers);
+            gameConsole = new AcademyGameConsole(AvailablePlayers);
         }       
 
         public string WindowTitle
