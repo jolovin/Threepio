@@ -20,11 +20,13 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <GroupBox Grid.Column="0" Grid.RowSpan="3" Header="PlayerList" Margin="10, 20, 20, 0">
+        <!--<GroupBox Grid.Column="0" Grid.RowSpan="3" Header="Instructions" Margin="10, 20, 20, 0">
             <ListBox Margin="5" Width="175" Height="150" ItemsSource="{Binding AvailablePlayers, Mode=TwoWay, NotifyOnSourceUpdated=True}" />
-        </GroupBox>
+        </GroupBox>-->
+        <Label Grid.Column="0" Grid.Row="0">To Translate: > partialPlayerName</Label>
+        <Label Grid.Column="0" Grid.Row="1">To Stop: >> </Label>
 
-        <Button x:Name="GetAvailablePlayers" Grid.Row="4" Grid.Column="0" Margin="10, 10, 20, 0">Update Player List</Button>
+        <!--<Button x:Name="GetAvailablePlayers" Grid.Row="4" Grid.Column="0" Margin="10, 10, 20, 0">Update Player List</Button>-->
 
     </Grid>
 </Window>

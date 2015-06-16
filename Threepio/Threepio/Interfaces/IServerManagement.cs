@@ -6,5 +6,6 @@ namespace Threepio.Interfaces
     {
         List<string> GetPlayers();
         bool IsServerOnline();
+        string GetPlayer(string PartialName);
     }
 }

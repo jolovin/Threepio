@@ -8,11 +8,11 @@ namespace Threepio.Client.ViewModels
 {
     public class MainViewModel : PropertyChangedBase
     {
-        private GameServer gameServer;
-        private ServerManagement serverManager;
+        //private GameServer gameServer;
+        //private ServerManagement serverManager;
         private AcademyGameConsole gameConsole;
 
-        private const string WindowTitleDefault = "Threepio v 1.0.0.1"; 
+        private const string WindowTitleDefault = "Threepio v 1.0.0.2"; 
         private string _windowTitle = WindowTitleDefault;
 
         public List<string> AvailablePlayers { get; set; }
@@ -22,7 +22,8 @@ namespace Threepio.Client.ViewModels
         /// </summary>
         public MainViewModel()
         {
-            GetAvailablePlayers();
+            //GetAvailablePlayers();
+            gameConsole = new AcademyGameConsole();
         }
 
         /// <summary>
@@ -30,10 +31,10 @@ namespace Threepio.Client.ViewModels
         /// </summary>
         public void GetAvailablePlayers()
         {
-            serverManager = new ServerManagement(gameServer);
-            AvailablePlayers = serverManager.GetPlayers();
-            NotifyOfPropertyChange(() => AvailablePlayers);
-            gameConsole = new AcademyGameConsole(AvailablePlayers);
+            //serverManager = new ServerManagement(gameServer);
+            //AvailablePlayers = serverManager.GetPlayers();
+            //NotifyOfPropertyChange(() => AvailablePlayers);
+            
         }       
 
         public string WindowTitle

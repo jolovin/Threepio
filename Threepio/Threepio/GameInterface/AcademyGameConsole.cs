@@ -7,14 +7,22 @@ using System.Threading.Tasks;
 using Threepio.Translator;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using GameServerInfo;
+using Threepio.Server;
+using AIMLbot;
 
 namespace Threepio.GameInterface
 {
     public class AcademyGameConsole
     {
         private TranslatorService translatorService;
+        private GameServer gameServer;
+        private ServerManagement serverManager;
+
         private List<string> Players { get; set; }
         private string TargetedPlayer { get; set; }
+        private static string playerName = "-[KR]-Zabuza*:";
+        private static bool isMasterOnly = false;
 
         //GetWindow WINAPI constants
         private const int GW_HWNDFIRST = 0;
@@ -35,6 +43,9 @@ namespace Threepio.GameInterface
         private string oldText = "";
 
         private bool isFirstBatchOfMessages;
+
+        public static Bot myBot;
+        public static User myUser;
 
         private string user = "-[KR]-" + ConfigurationManager.AppSettings["PlayerName"] + ":";
 
@@ -62,9 +73,11 @@ namespace Threepio.GameInterface
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
-        public AcademyGameConsole(List<string> players)
+        public AcademyGameConsole()
         {
-            Players = players;
+            serverManager = new ServerManagement(gameServer);
+
+            Players = serverManager.GetPlayers();
             TargetedPlayer = "";
 
             isFirstBatchOfMessages = true;
@@ -89,6 +102,13 @@ namespace Threepio.GameInterface
                     }
                     else
                     {
+                        myBot = new Bot();
+                        myBot.loadSettings();
+                        myUser = new User("consoleUser", myBot);
+                        myBot.isAcceptingUserInput = false;
+                        myBot.loadAIMLFromFiles();
+                        myBot.isAcceptingUserInput = true;
+
                         retrieveHandle = childWindow;
                         TimerControl();
 
@@ -105,19 +125,35 @@ namespace Threepio.GameInterface
         /// </summary>
         private void TimerControl()
         {
-            Timer timer = new Timer();
-            timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            timer.Interval = 100;
-            timer.Enabled = true;
+            Timer chatTimer = new Timer();
+            chatTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent_Chat);
+            chatTimer.Interval = 1;
+            chatTimer.Enabled = true;
+
+            //Timer playerTimer = new Timer();
+            //playerTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent_Player);
+            //playerTimer.Interval = 180000;
+            //playerTimer.Enabled = true;
         }
 
         /// <summary>
         /// Retrieves chat messages every second.
         /// </summary>
-        private void OnTimedEvent(object source, ElapsedEventArgs e)
+        private void OnTimedEvent_Chat(object source, ElapsedEventArgs e)
         {
             GetChatMessages();
         }
+
+        /// <summary>
+        /// Retrieves chat messages every second.
+        /// </summary>
+        //private void OnTimedEvent_Player(object source, ElapsedEventArgs e)
+        //{
+        //    serverManager = new ServerManagement(gameServer);
+        //    Players = serverManager.GetPlayers();
+
+        //    MessageToConsole("Threepio", string.Format("Updating player list..."));
+        //}
 
         private void GetChatMessages()
         {
@@ -143,80 +179,139 @@ namespace Threepio.GameInterface
         /// Checks the given chat entry for user commands.
         /// </summary>
         /// <param name="command">The chat being analyzed.</param>
-        private void CheckMessageForCommand(string chatEntry)
+        private void CheckMessageForCommand(string command)
         {
             //TODO: Refactor the string handling.
             var translateInstruction = ">";
             var stopTranslatingInstruction = ">>";
-            
+
+            string instruction1 = "_t";
+            string botInstruction = "_3";
+            string testCommand = "_test";
+
             if (isFirstBatchOfMessages)
             {
                 isFirstBatchOfMessages = false;
                 return;
             }
 
-            if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
-            {                
-                MessageToConsole("Threepio", string.Format("No longer translating ^1{0}^7...", TargetedPlayer));
+            var player = command.Substring(0, command.IndexOf(":") + 1);
+            string audience = isMasterOnly ? playerName : command.Substring(0, command.IndexOf(":") + 1);
+            Console.WriteLine(command);
 
-                TargetedPlayer = "";
+            var task = new TaskFactory();
+
+           if (command.Contains(audience) && command.Contains(botInstruction + " sa"))
+            {
+                isMasterOnly = !isMasterOnly;
+
+                string response = isMasterOnly ? string.Format(" say ^1<^3Threepio^1> {0}", "I only obey master.") : string.Format(" say ^1<^3Threepio^1> {0}", "I am C-3P0, human cyborg relations");
+
+                task.StartNew(() => SendChatMessage(new StringBuilder(response)))
+                    .ContinueWith(x =>
+                    {
+                        if (x.Status == TaskStatus.RanToCompletion)
+                        {
+                            SendChatMessage(new StringBuilder(" "));
+                        }
+                    });
 
                 return;
             }
 
-            if (chatEntry.StartsWith(string.Format("{0}:", TargetedPlayer)))
-            {
-                var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
 
-                MessageToConsole(TargetedPlayer, targetRemoval, true);
+           if (command.Contains(audience) && command.Contains(botInstruction))
+           {
+               int index = command.IndexOf(playerName);
+               string stuff = (index < 0)
+                   ? command
+                   : command.Remove(index, (playerName + botInstruction).Length + 1).Replace("\r\n", "");
+
+               Request r = new Request(stuff, myUser, myBot);
+               Result res = myBot.Chat(r);
+               var test = res.Output;
+
+               MessageToConsole(audience.Replace(":", ""), res.Output, false);
+
+               return;
+           }
+
+           //if (command.Contains(audience) && command.Contains(instruction1))
+           //{
+           //    int index = command.IndexOf(audience);
+           //    string stuff = (index < 0)
+           //        ? command
+           //        : command.Remove(index, (audience + instruction1).Length + 1);
+
+           //    task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" say ^1<^3{0}^1>{1}", audience.Replace(":", ""), translatorService.Translate(stuff)))))
+           //        .ContinueWith(x =>
+           //        {
+           //            if (x.Status == TaskStatus.RanToCompletion)
+           //            {
+           //                SendChatMessage(new StringBuilder(" "));
+           //            }
+           //        });
+
+           //    Console.WriteLine(stuff);
+           //    return;
+           //}
+
+
+            if (command.Contains(playerName) && command.Contains(testCommand))
+            {
+                MessageToConsole("<3p0>", "test");
+
                 return;
-            }            
+            }                
 
-            if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
-            {
-                var partialName = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim();
-                TargetedPlayer = GetPlayer(partialName);
+            //if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
+            //{                
+            //    MessageToConsole("Threepio", string.Format("No longer translating ^1{0}^7...", TargetedPlayer));
 
-                if (string.IsNullOrEmpty(TargetedPlayer))
-                {
-                    MessageToConsole("Threepio", string.Format("Unable to find player with partial name: ^1{0}. Please consider refreshing player list", partialName));
-                    return;
-                }
+            //    TargetedPlayer = "";
 
-                MessageToConsole("Threepio", string.Format("Now translating ^1{0}^7...", TargetedPlayer));
-            }
+            //    return;
+            //}
+
+            //if (chatEntry.StartsWith(string.Format("{0}:", TargetedPlayer)))
+            //{
+            //    var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
+
+            //    MessageToConsole(TargetedPlayer, targetRemoval, true);
+            //    return;
+            //}            
+
+            //if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
+            //{
+            //    var partialName = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim();
+            //    TargetedPlayer = serverManager.GetPlayer(partialName);
+
+            //    if (string.IsNullOrEmpty(TargetedPlayer))
+            //    {
+            //        MessageToConsole("Threepio", string.Format("Unable to find player with partial name: ^1{0}^7.", partialName));
+            //        return;
+            //    }
+
+            //    MessageToConsole("Threepio", string.Format("Now translating ^1{0}^7...", TargetedPlayer));
+            //}
         }
 
         private void MessageToConsole(string echoMessageReporter, string messageToDisplay, bool isTranslate = false)
         {
 
             messageToDisplay = isTranslate ? translatorService.Translate(messageToDisplay) : messageToDisplay;
+            var timeInterval = isTranslate ? 500 : 300;
 
             var task = new TaskFactory();
-            task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" echo ^1<^3{0}^1> {1}", echoMessageReporter, messageToDisplay))))
+            task.StartNew(() => SendChatMessage(new StringBuilder(string.Format(" say ^1<^3{0}^1> {1}", echoMessageReporter, messageToDisplay))))
                 .ContinueWith(x =>
                 {
                     if (x.Status == TaskStatus.RanToCompletion)
                     {
                         SendChatMessage(new StringBuilder(" "));
                     }
-                });
-        }
-
-        /// <summary>
-        /// Returns a playerName based on the given partial name.
-        /// </summary>
-        /// <param name="partialPlayerName">The player's partial name.</param>
-        /// <returns>The player name.</returns>
-        public string GetPlayer(string partialName)
-        {
-            foreach (var player in Players)
-            {
-                if(player.ToLower().Replace("-[KR]-", "").Contains(partialName.ToLower()))
-                    return player;
-            }
-            return "";
-        }
+                }).Wait(timeInterval);
+        }              
 
         /// <summary>
         /// Send the chat message to the game console.

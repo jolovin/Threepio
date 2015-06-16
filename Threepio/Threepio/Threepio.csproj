@@ -55,6 +55,9 @@
     <ApplicationIcon>Images\threepio_icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AIMLbot">
+      <HintPath>..\Dependencies\AIMLbot.dll</HintPath>
+    </Reference>
     <Reference Include="Caliburn.Micro">
       <HintPath>..\packages\Caliburn.Micro.1.5.2\lib\net40\Caliburn.Micro.dll</HintPath>
     </Reference>
