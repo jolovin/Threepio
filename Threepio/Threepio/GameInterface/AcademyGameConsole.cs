@@ -21,6 +21,7 @@ namespace Threepio.GameInterface
 
         private List<string> Players { get; set; }
         private string TargetedPlayer { get; set; }
+        private bool IsSendingMessage { get; set; }
         private static string playerName = "-[KR]-Zabuza*:";
         private static bool isMasterOnly = false;
 
@@ -181,6 +182,9 @@ namespace Threepio.GameInterface
         /// <param name="command">The chat being analyzed.</param>
         private void CheckMessageForCommand(string command)
         {
+            if (IsSendingMessage)
+                return;
+
             //TODO: Refactor the string handling.
             var translateInstruction = ">";
             var stopTranslatingInstruction = ">>";
@@ -205,16 +209,9 @@ namespace Threepio.GameInterface
             {
                 isMasterOnly = !isMasterOnly;
 
-                string response = isMasterOnly ? string.Format(" say ^1<^3Threepio^1> {0}", "I only obey master.") : string.Format(" say ^1<^3Threepio^1> {0}", "I am C-3P0, human cyborg relations");
+                string response = isMasterOnly ? string.Format("I only obey master.") : string.Format("I am C-3P0, human cyborg relations");
 
-                task.StartNew(() => SendChatMessage(new StringBuilder(response)))
-                    .ContinueWith(x =>
-                    {
-                        if (x.Status == TaskStatus.RanToCompletion)
-                        {
-                            SendChatMessage(new StringBuilder(" "));
-                        }
-                    });
+                MessageToConsole(audience, response);
 
                 return;
             }
@@ -222,10 +219,10 @@ namespace Threepio.GameInterface
 
            if (command.Contains(audience) && command.Contains(botInstruction))
            {
-               int index = command.IndexOf(playerName);
+               int index = command.IndexOf(audience);
                string stuff = (index < 0)
                    ? command
-                   : command.Remove(index, (playerName + botInstruction).Length + 1).Replace("\r\n", "");
+                   : command.Remove(index, (audience + botInstruction).Length + 1).Replace("\r\n", "");
 
                Request r = new Request(stuff, myUser, myBot);
                Result res = myBot.Chat(r);
@@ -262,42 +259,44 @@ namespace Threepio.GameInterface
                 MessageToConsole("<3p0>", "test");
 
                 return;
-            }                
+            }
 
-            //if (chatEntry.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
-            //{                
-            //    MessageToConsole("Threepio", string.Format("No longer translating ^1{0}^7...", TargetedPlayer));
+            if (command.StartsWith(string.Format("{0} {1}", user, stopTranslatingInstruction)))
+            {
+                MessageToConsole("Threepio", string.Format("No longer translating ^1{0}^7...", TargetedPlayer));
 
-            //    TargetedPlayer = "";
+                TargetedPlayer = "";
 
-            //    return;
-            //}
+                return;
+            }
 
-            //if (chatEntry.StartsWith(string.Format("{0}:", TargetedPlayer)))
-            //{
-            //    var targetRemoval = chatEntry.Replace(string.Format("{0}:", TargetedPlayer), "");
+            if (command.StartsWith(string.Format("{0}:", TargetedPlayer)))
+            {
+                var targetRemoval = command.Replace(string.Format("{0}:", TargetedPlayer), "");
 
-            //    MessageToConsole(TargetedPlayer, targetRemoval, true);
-            //    return;
-            //}            
+                MessageToConsole(TargetedPlayer, targetRemoval, true);
+                return;
+            }
 
-            //if (chatEntry.StartsWith(string.Format("{0} {1}", user, translateInstruction)))
-            //{
-            //    var partialName = chatEntry.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim();
-            //    TargetedPlayer = serverManager.GetPlayer(partialName);
+            if (command.StartsWith(string.Format("{0} {1}", user, instruction1)))
+            {
+                var partialName = command.Replace(string.Format("{0} {1}", user, translateInstruction), "").Trim();
+                TargetedPlayer = serverManager.GetPlayer(partialName);
 
-            //    if (string.IsNullOrEmpty(TargetedPlayer))
-            //    {
-            //        MessageToConsole("Threepio", string.Format("Unable to find player with partial name: ^1{0}^7.", partialName));
-            //        return;
-            //    }
+                if (string.IsNullOrEmpty(TargetedPlayer))
+                {
+                    MessageToConsole("Threepio", string.Format("Unable to find player with partial name: ^1{0}^7.", partialName));
+                    return;
+                }
 
-            //    MessageToConsole("Threepio", string.Format("Now translating ^1{0}^7...", TargetedPlayer));
-            //}
+                MessageToConsole("Threepio", string.Format("Now translating ^1{0}^7...", TargetedPlayer));
+            }
         }
 
         private void MessageToConsole(string echoMessageReporter, string messageToDisplay, bool isTranslate = false)
         {
+            //Block incoming async chat messages.
+            IsSendingMessage = true;
 
             messageToDisplay = isTranslate ? translatorService.Translate(messageToDisplay) : messageToDisplay;
             var timeInterval = isTranslate ? 500 : 300;
@@ -308,9 +307,13 @@ namespace Threepio.GameInterface
                 {
                     if (x.Status == TaskStatus.RanToCompletion)
                     {
-                        SendChatMessage(new StringBuilder(" "));
+                        //s          SendChatMessage(new StringBuilder(" "));
                     }
-                }).Wait(timeInterval);
+
+                    //we can now send more messages.
+                    IsSendingMessage = false;
+                });
+
         }              
 
         /// <summary>
@@ -321,7 +324,8 @@ namespace Threepio.GameInterface
         {
             SendMessage(sendHandle, WM_SETTEXT, (IntPtr)textMessage.Length, textMessage.ToString());
 
-            if (!string.IsNullOrEmpty(textMessage.ToString()))
+           // if (!string.IsNullOrEmpty(textMessage.ToString()))
+            System.Threading.Thread.Sleep(1000);
                 PostMessage(sendHandle, WM_KEYDOWN, VK_RETURN, 0);
         }
     }
